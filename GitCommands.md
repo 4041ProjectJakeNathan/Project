@@ -11,3 +11,6 @@
 
 
 Pull if you need to add new changes, then add files to queue to commit, then commit with message, then push. 
+
+To access repo, open the directory through terminal you want to put repo into.
+Run git clone https://github.com/4041ProjectJakeNathan/Project

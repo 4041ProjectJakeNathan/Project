@@ -6,3 +6,6 @@ http://www-users.cselabs.umn.edu/classes/Fall-2013/csci1901H/labs/lab12-solution
 
 How to convert a file to image
 http://docs.oracle.com/javase/tutorial/2d/images/examples/LoadImageApp.java
+
+Initial Testing Image:
+http://mjanetmars.com/post/46729240808/the-seduction-of-the-black-square

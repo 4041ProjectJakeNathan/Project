@@ -7,3 +7,11 @@ Goal: Design a program that is capable of taking in an image as input, and will 
 Due Date: 12/9/2014
 
 ***Add more like how we will break up tasks after asking Nikos for specifications regarding this report.
+Image Processing:
+-take image as input
+-turn to grayscale
+-filtering
+-edge extraction
+-line thinning
+-line fitting
+-output only prevalant lines

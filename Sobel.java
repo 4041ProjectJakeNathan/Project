@@ -32,11 +32,13 @@ public class Sobel
 		bufferedImage[bufferedImage.length-1] = bufferedImage[bufferedImage.length-2]; //handles last row
 		bufferedImage[0][0] = bufferedImage[0][1]; //handles first column
 		bufferedImage[bufferedImage.length-1][bufferedImage[0].length-1] = bufferedImage[bufferedImage.length-2][bufferedImage[0].length-2]; //handles last column
-		bufferedImage[0][0] = (int) (bufferedImage[0][1] + bufferedImage[1][0])/2; //top left
-		bufferedImage[0][bufferedImage[0].length-1] = (int) (bufferedImage[0][bufferedImage[0].length-2] + bufferedImage[1][bufferedImage[0].length-1])/2; //top right
-		bufferedImage[bufferedImage.length-1][0] = (int) (bufferedImage[bufferedImage.length-1][1] + bufferedImage[bufferedImage.length-2][0])/2; //bottom left
-		bufferedImage[bufferedImage.length-1][bufferedImage[0].length-1] = (int) (bufferedImage[bufferedImage.length-2][bufferedImage[0].length-1] + bufferedImage[bufferedImage.length-1][bufferedImage[0].length-2])/2; //bottom right
 		
+				
+		bufferedImage[0][0] = greyImage[0][0]; //top left
+		bufferedImage[0][bufferedImage[0].length-1] = greyImage[0][greyImage[0].length-1]; //top right
+		bufferedImage[bufferedImage.length-1][0] = greyImage[greyImage.length-1][0]; //bottom left
+		bufferedImage[bufferedImage.length-1][bufferedImage[0].length-1] = greyImage[greyImage.length-1][greyImage[0].length-1]; //bottom right
+	
 		return bufferedImage;
 	}
 	

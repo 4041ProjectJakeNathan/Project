@@ -23,24 +23,28 @@ public class Pixels {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        String fileName = "skyline.jpg";
+        String fileName = "ColoredSquares.jpg";
         BufferedImage img = readImage(fileName);
         System.out.println("Width = " + img.getWidth());
         System.out.println("Height = " + img.getHeight());
         ColorPixel[][] pixels = filterAndArray(img);
         BufferedImage sobel = sobelOperator(pixels);
+        //outerEdges(sobel);
         grayToFakeColor(sobel, "sobelContrast");
-        BufferedImage roberts = robertsOperator(pixels);
-        grayToFakeColor(roberts, "robertsContrast");
-        ColorPixel[][] robertsArray = filterAndArray(roberts);
-        ColorPixel[][] sobelArray = filterAndArray(sobel);
-        BufferedImage sobelRob = sobelOperator(robertsArray);
-        grayToFakeColor(sobelRob, "sobelRobertsContrast");
-        
+        //BufferedImage roberts = robertsOperator(pixels);
+        //grayToFakeColor(roberts, "robertsContrast");
+        //ColorPixel[][] robertsArray = filterAndArray(roberts);
+        //ColorPixel[][] sobelArray = filterAndArray(sobel);
+        //BufferedImage sobelRob = sobelOperator(robertsArray);
+        //grayToFakeColor(sobelRob, "sobelRobertsContrast");
+        //arrayToTxt(filterAndArray(sobel), "sobel");
         
         //printLumiGrayArray(pixels);
         //buildImage(pixels);
         //test();
+    }
+    protected static void outerEdges(BufferedImage sob){
+        
     }
     protected static void arrayToTxt(ColorPixel[][] arr, String fileName){
         int gray;
@@ -201,7 +205,9 @@ public class Pixels {
 		{	//how to get height and width?
 			for(int y = 0; y < b_img[0].length; y++)
 			{
+                                // Buffer
                                 if(x == 0 || y == 0 || x == (b_img.length - 1) || y == (b_img[0].length - 1)){ result.setRGB(x, y, b_img[x][y].getLumiGray());}
+                                
                                 else{int newX = xSobelFilter[0][0]*b_img[x-1][y-1].getLumiGray() + xSobelFilter[0][1]*b_img[x-1][y].getLumiGray() + xSobelFilter[0][2]*b_img[x-1][y+1].getLumiGray() +
 						xSobelFilter[1][0]*b_img[x-1][y].getLumiGray() + xSobelFilter[1][1]*b_img[x][y].getLumiGray() + xSobelFilter[1][2]*b_img[x+1][y-1].getLumiGray() +
 						xSobelFilter[2][0]*b_img[x-1][y+1].getLumiGray() + xSobelFilter[2][1]*b_img[x][y+1].getLumiGray() + xSobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
@@ -211,6 +217,7 @@ public class Pixels {
 						ySobelFilter[2][0]*b_img[x-1][y+1].getLumiGray() + ySobelFilter[2][1]*b_img[x][y+1].getLumiGray() + ySobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
 				
 				int gradient = (int) Math.sqrt(newX*newX + newY*newY);
+                                // Threshold
                                 if (gradient > 120){gradient = 255;}
                                 else{gradient = 0;}
 				result.setRGB(x, y, gradient);  //good for left borders, but right?

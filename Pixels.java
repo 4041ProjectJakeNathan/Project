@@ -209,13 +209,13 @@ public class Pixels {
                                 // Buffer
                                 if(x == 0 || y == 0 || x == (b_img.length - 1) || y == (b_img[0].length - 1)){ gradient = b_img[x][y].getLumiGray();}
                                 
-                                else{int newX = xSobelFilter[0][0]*b_img[x-1][y-1].getLumiGray() + xSobelFilter[0][1]*b_img[x-1][y].getLumiGray() + xSobelFilter[0][2]*b_img[x-1][y+1].getLumiGray() +
-						xSobelFilter[1][0]*b_img[x-1][y].getLumiGray() + xSobelFilter[1][1]*b_img[x][y].getLumiGray() + xSobelFilter[1][2]*b_img[x+1][y-1].getLumiGray() +
-						xSobelFilter[2][0]*b_img[x-1][y+1].getLumiGray() + xSobelFilter[2][1]*b_img[x][y+1].getLumiGray() + xSobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
+                                else{int newX = xSobelFilter[0][0]*b_img[x-1][y-1].getLumiGray() + xSobelFilter[0][1]*b_img[x+1][y].getLumiGray() + xSobelFilter[0][2]*b_img[x-1][y+1].getLumiGray() +
+						xSobelFilter[1][0]*b_img[x][y-1].getLumiGray() + xSobelFilter[1][1]*b_img[x][y].getLumiGray() + xSobelFilter[1][2]*b_img[x][y+1].getLumiGray() +
+						xSobelFilter[2][0]*b_img[x+1][y-1].getLumiGray() + xSobelFilter[2][1]*b_img[x+1][y].getLumiGray() + xSobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
 				
 				int newY = ySobelFilter[0][0]*b_img[x-1][y-1].getLumiGray() + ySobelFilter[0][1]*b_img[x-1][y].getLumiGray() + ySobelFilter[0][2]*b_img[x-1][y+1].getLumiGray() +
-						ySobelFilter[1][0]*b_img[x-1][y].getLumiGray() + ySobelFilter[1][1]*b_img[x][y].getLumiGray() + ySobelFilter[1][2]*b_img[x+1][y-1].getLumiGray() +
-						ySobelFilter[2][0]*b_img[x-1][y+1].getLumiGray() + ySobelFilter[2][1]*b_img[x][y+1].getLumiGray() + ySobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
+					   ySobelFilter[1][0]*b_img[x][y-1].getLumiGray() + ySobelFilter[1][1]*b_img[x][y].getLumiGray() + ySobelFilter[1][2]*b_img[x][y+1].getLumiGray() +
+					   ySobelFilter[2][0]*b_img[x+1][y-1].getLumiGray() + ySobelFilter[2][1]*b_img[x+1][y].getLumiGray() + ySobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
 				
 				/*
 				In the link http://www2.ph.ed.ac.uk/~wjh/teaching/dia/documents/edge-ohp.pdf that you provided, Nathan, 

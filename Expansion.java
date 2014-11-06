@@ -34,6 +34,6 @@ public BufferedImage expansion(BufferedImage edges)
 				}
 			}
 		}
-		createFileImage(extended_edges, "extended_edges")
+		createFileImage(extended_edges, "extended_edges");
 		return extended_edges;
 	}

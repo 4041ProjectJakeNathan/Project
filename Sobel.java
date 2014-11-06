@@ -61,7 +61,13 @@ public class Sobel
 				int newY = ySobelFilter[0][0]*b_img[x-1][y-1] + ySobelFilter[0][1]*b_img[x-1][y] + ySobelFilter[0][2]*b_img[x-1][y+1] +
 						ySobelFilter[1][0]*b_img[x-1][y] + ySobelFilter[1][1]*b_img[x][y] + ySobelFilter[1][2]*b_img[x+1][y-1] +
 						ySobelFilter[2][0]*b_img[x-1][y+1] + ySobelFilter[2][1]*b_img[x][y+1] + ySobelFilter[2][2]*b_img[x+1][y+1];
+				/*
+				In the link http://www2.ph.ed.ac.uk/~wjh/teaching/dia/documents/edge-ohp.pdf that you provided, Nathan, 
+				it suggested calculating gradient by taking the absolute value of newX and newY because it was more efficient.
+				We should test this:
 				
+				int gradient = (int) Math.abs(newX) + Math.abs(newY);
+				*/
 				int gradient = (int) Math.sqrt(newX*newX + newY*newY);
 				result[x-1][y-1] = gradient; //good for left borders, but right?
 			}

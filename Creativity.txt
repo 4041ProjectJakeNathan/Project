@@ -1,0 +1,5 @@
+Otsu's method
+Dual modal Gaussian intersection
+
+Hough Transformation
+Used to optimize edge thinnning.  Essentially attempts to identify lines.

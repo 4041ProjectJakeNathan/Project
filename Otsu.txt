@@ -1,2 +1,0 @@
-Otsu's method
-Dual modal Gaussian intersection

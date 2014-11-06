@@ -37,3 +37,49 @@ public BufferedImage expansion(BufferedImage edges)
 		createFileImage(extended_edges, "extended_edges");
 		return extended_edges;
 	}
+	
+		/*
+	 * I think we should re-add the buffer method because accounting for the edges
+	 * in all of these operations is annoying to say the least.
+	 */
+	//current implementation will shift lines to the right, can correct later
+	public BufferedImage thin(BufferedImage img)
+	{
+		for (int x = 0; x < img.getWidth(); x++)
+		{
+			for (int y = 0; y< img.getHeight(); y++)
+			{
+				int neighbors = checkNeighbors(img, x, y);
+				
+				if (neighbors == 0)//check if lone pixel
+					img.setRGB(x, y, 0);
+				if (neighbors > 2)//check excessive amount
+					img.setRGB(x, y, 0);
+			}
+		}
+		return img;
+	}
+	
+	public int checkNeighbors(BufferedImage img, int x, int y)
+	{
+		int neighbors = 0;
+		
+		if (img.getRGB(x-1, y-1) == 255)
+				neighbors++;
+		if (img.getRGB(x-1, y  ) == 255)
+			neighbors++;
+		if (img.getRGB(x-1, y+1) == 255) 
+			neighbors++;						
+		if (img.getRGB(x-1, y  ) == 255) 						
+			neighbors++;						
+		if (img.getRGB(x+1, y-1) == 255) 		
+			neighbors++;			
+		if (img.getRGB(x-1, y+1) == 255) 		
+			neighbors++;			
+		if (img.getRGB(x,   y+1) == 255) 		
+			neighbors++;			
+		if (img.getRGB(x+1, y+1) == 255) 		
+			neighbors++;
+		
+		return neighbors;
+	}

@@ -216,6 +216,13 @@ public class Pixels {
 						ySobelFilter[1][0]*b_img[x-1][y].getLumiGray() + ySobelFilter[1][1]*b_img[x][y].getLumiGray() + ySobelFilter[1][2]*b_img[x+1][y-1].getLumiGray() +
 						ySobelFilter[2][0]*b_img[x-1][y+1].getLumiGray() + ySobelFilter[2][1]*b_img[x][y+1].getLumiGray() + ySobelFilter[2][2]*b_img[x+1][y+1].getLumiGray();
 				
+				/*
+				In the link http://www2.ph.ed.ac.uk/~wjh/teaching/dia/documents/edge-ohp.pdf that you provided, Nathan, 
+				it suggested calculating gradient by taking the absolute value of newX and newY because it was more efficient.
+				We should test this:
+				
+				int gradient = (int) Math.abs(newX) + Math.abs(newY);
+				*/
 				int gradient = (int) Math.sqrt(newX*newX + newY*newY);
                                 // Threshold
                                 if (gradient > 120){gradient = 255;}

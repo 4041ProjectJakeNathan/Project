@@ -1,0 +1,33 @@
+%reads in file, can be extended to read in multiple files within a folder
+I = imread('retina1.jpg');
+
+%size(I) tells dimension and colors of image
+
+%{
+Step 1: Use a filter to blur the image.  This step of preprocessing helps
+reduce the details of the image which will prevent unnecessary noise
+from being detected later in the algorithm.
+%}
+filter = fspecial('gaussian', [5,5], 50); %essentially blurs image
+%filter = fspecial('log'); %laplacian of gaussian recommended for blob
+filI = imfilter(I, filter, 'replicate'); %applies filter
+
+%{
+Step 2: Convert image to greyscale.  Another step of preprocessing that
+will ultimately reduce noise during edge detection.  I also included the
+optional Otsu's method that automatically provides a threshold based on
+the distributon of a photo.  A threshold is used during edge detection
+to indicate what level of detail you want included.  Play around with
+the value and just see the difference in results using imshow(object_name),
+it's actually really cool.  And something we must hash out because it
+determines how much of the arterial network we actually see.
+%}
+grayI = rgb2gray(I);
+thresh = graythresh(grayI); %.2353
+
+%{
+Step 3: Edge detection.  This is the workhorse of the algorithm, and in
+this case I've used .15 instead of the threshold value of the Otsu's method
+because I didn't think it was detailed enough.
+%}
+canny_img = edge(grayI, 'canny', .15);%, sigma);

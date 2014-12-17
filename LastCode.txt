@@ -1,0 +1,491 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package edgedetection;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Scanner;
+import javax.imageio.ImageIO;
+/**
+ *
+ * @author nathan
+ */
+public class EdgeDetection {
+
+    /**
+     * @param args the command line arguments
+     */
+    
+    // I would make a0, a0L static, but because there's the null possibility of a bad file it wouldn't work
+    public static void main(String[] args) {
+        Scanner getFile = new Scanner(System.in);
+        System.out.println("Please input the file name to use");
+        //String fileName = getFile.nextLine();
+        String fileName = "Plouffe.jpg";
+        BufferedImage buff = readImage(fileName);
+        if(buff == null){System.out.println("Invalid image. Breaking");}
+        else{
+        System.out.println("Buffered built");
+        short[][] gray = buffToArray(buff);
+        System.out.println("Pixels built");
+        short[][] gauss = gaussian(gray);
+        System.out.println("Gauss built");
+        boolean[][] binarySobel = sobelWithOtsu(gauss);
+        System.out.println("Sobel built");
+        buildBinaryImage(binarySobel, "openingNone");
+        System.out.println("Binary written");
+        boolean[][] opened = opening(binarySobel, 15);
+        buildBinaryImage(opened, "openingYes");
+        short[][] hough = HoughTransform(binarySobel);
+        //short[][] houghScaled = scale(hough);
+        //buildColorImage(houghScaled, "hough");
+        }
+        }
+    
+    
+    protected static BufferedImage readImage(String fileName){
+        try{File file = new File(fileName);
+            return ImageIO.read(file);}
+        catch(IOException e){ System.out.println("Invalid file"); return null;}
+    }
+    
+    protected static void writeImageToFile(BufferedImage img, String fileName){
+        try{
+            ImageIO.write(img, "jpg", new File(fileName + ".jpg"));
+        }
+        catch(IOException e){}
+    }
+    
+    protected static short[][] buffToArray(BufferedImage img){
+        int width = img.getWidth();
+        int height = img.getHeight();
+        short[][] ret = new short[width][height];
+        int color;
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                // Gray = .21 red + .72 green + .07 blue
+                color = img.getRGB(i, j);
+                ret[i][j] = (short)(.21 * ((color >> 16) & 0xFF) + .72 * ((color >> 8) & 0xFF) + .07 * (color & 0xFF));
+            }
+        }
+        return ret;
+    }
+    
+    // Erode than dilate the number of times that count says
+    protected static boolean[][] opening(boolean[][] arr, int count){
+        for (int i = 0; i < count; i++) {
+            arr = erosion(arr);
+            arr = dilation(arr);
+        }
+        return arr;
+    }
+    
+    // This gets the 1 2 1 column for gaussian starting from bottom left i, j and working up
+    protected static short colValue(short[][] arr, int i, int j){
+        return (short)(arr[i-2][j] + 2 * arr[i-1][j] + arr[i][j]);
+    }
+    
+    
+    protected static short[][] gaussian(short[][] arr){
+        // Saves time by not recomputing the column values and instead 
+        // 1 2 1
+        // 2 4 2
+        // 1 2 1  / 16
+        short[][] ret = new short[arr.length][arr[0].length];
+        short colA, colB, colC;
+        // Pulling these out of the loop per 2021 so it doesn't repeat calculation
+        int arrL = arr.length;
+        int arr0L = arr[0].length;
+        // This capitalizes on fact that the columns are multiples so dropping the left for a new right and doubling middle works
+        // I considered alternative of going by rows and working down the matrix in 3 width columns shifting right one each loop
+        // From 2021 cache lab, that would evict more often as every 4th or 8th row would conflict
+        // However, this has less spatial locality when it is jumping between columns
+        // Opted to go with this as quicker because it should still have consecutive cache hits as long as cache holds 3 rows at once
+        // Left = a, mid = b, right = c. Mid *2, sum them up and divide by 16
+        // Drop the left and shift over
+        for (int i = 2; i < arrL; i++) {
+            colA = colValue(arr, i, 0);
+            colB = colValue(arr, i, 1);
+            for (int j = 2; j < arr0L; j++) {
+                colC = colValue(arr, i, j);
+                // This is doing from bottom right corner to compute something for the middle
+                ret[i - 1][j - 1] = (short)((colA + 2 * colB + colC) / 16);
+                colA = colB;
+                colB = colC;
+            }
+        }
+        return ret;
+    }
+    
+    // Same sort of thing as the column computations for gaussian
+    protected static boolean andColumn(boolean[][] a, int i, int j){
+        return (a[i-2][j] && a[i-1][j] && a[i][j]);
+    }
+    
+    protected static boolean orColumn(boolean[][] a, int i, int j){
+        return (a[i-2][j] || a[i-1][j] || a[i][j]);
+    }
+    
+    // Same logic as Gaussian. Looking to and the 1 1 1, 1 1 1, 1 1 1 matrix so that inner is only a 1 if it's completely
+    //   surrounded by ones
+    // This tries to thin lines or regions
+    protected static boolean[][] erosion(boolean[][] a){
+        int aL = a.length;
+        int a0L = a[0].length;
+        boolean colA, colB, colC;
+        // Need to store it into a new array so it doesn't overwrite itself and change calculations
+        boolean[][] ret = new boolean[aL][a0L];
+        for (int i = 2; i < aL; i++) {
+            colA = andColumn(a, i, 0);
+            colB = andColumn(a, i, 1);
+            for (int j = 2; j < a0L; j++) {
+                colC = andColumn(a, i, j);
+                // Shift to the middle from bottom right
+                ret[i-1][j-1] = colA && colB && colC;
+                // Old mid = new left
+                colA = colB;
+                // Old right = new mid
+                colB = colC;
+            }
+        }
+        return ret;
+    }
+    // This is exact same as erosion except using ors instead of and so center is 1 if any neighbor is a 1
+    // This tries to expand lines or regions
+    protected static boolean[][] dilation(boolean[][] a){
+        int aL = a.length;
+        int a0L = a[0].length;
+        boolean colA, colB, colC;
+        boolean[][] ret = new boolean[aL][a0L];
+        // Ignoring the upper left edges because it otherwise encroaches in each time
+        for (int i = 2; i < aL; i++) {
+            colA = orColumn(a, i, 0);
+            colB = orColumn(a, i, 1);
+            for (int j = 2; j < a0L; j++) {
+                colC = orColumn(a, i, j);
+                ret[i-1][j-1] = colA || colB || colC;
+                colA = colB;
+                colB = colC;
+            }
+        }
+        return ret;
+    }
+
+    // This takes values of range 0 to n and uniformly scales them down to 0 to 255 by multiplying by 255/max
+    protected static short[][] scale(short[][] a){
+        int aL = a.length;
+        int a0L = a[0].length;
+        int max = 0;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                if(a[i][j] > max){max = a[i][j];}
+            }
+        }
+        double scale = 255.0 / max;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                a[i][j] = (short)(scale * a[i][j]);
+            }
+        }
+        return a;
+    }
+    protected static boolean[][] sobelWithOtsu(short[][] a){
+        // Matrices defined by sobel
+        short[][] xFilter = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+        short[][] yFilter = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
+        int aL = a.length;
+        int a0L = a[0].length;
+        // Store sobel as shorts
+        short[][] ret = new short[aL][a0L];
+        // Otsu makes it binary where true = 1 = black, 0 = false = white
+        boolean[][] ret2 = new boolean[aL][a0L];
+        short gradient, newx, newy;
+        int maxGrad = 0;
+        int[] histo = new int[256];
+        // Initialize histo to 0. Unroll by 4 for speed
+        for (int i = 0; i < 256; i += 4) {
+            histo[i] = 0;
+            histo[i+1] = 0;
+            histo[i+2] = 0;
+            histo[i+3] = 0;
+        }
+        
+        // First step- apply otsu
+        for (int x = 0; x < aL; x++) {
+            for (int y = 0; y < a0L; y++) {
+                // Setting the outer edges to 0, which means they'll become white later
+                if((x == 0 )|| (y == 0) || (x + 1) == aL || (y + 1) == a0L){ ret[x][y] = 0;}
+                else{
+                    // Ordered loop to scan within row first to maintain spatial locality
+                    newx = (short)(xFilter[0][0]*a[x-1][y-1] +
+                           xFilter[0][1]*a[x  ][y-1] +
+                           xFilter[0][2]*a[x+1][y-1] +
+                           xFilter[1][0]*a[x-1][y  ] +
+                           xFilter[1][1]*a[x  ][y  ] +
+                           xFilter[1][2]*a[x+1][y  ] +
+                           xFilter[2][0]*a[x-1][y+1] +
+                           xFilter[2][1]*a[x  ][y+1] +
+                           xFilter[2][2]*a[x+1][y+1]);
+                    newy = (short)(yFilter[0][0]*a[x-1][y-1] +
+                           yFilter[0][1]*a[x  ][y-1] +
+                           yFilter[0][2]*a[x+1][y-1] +
+                           yFilter[1][0]*a[x-1][y  ] +
+                           yFilter[1][1]*a[x  ][y  ] +
+                           yFilter[1][2]*a[x+1][y  ] +
+                           yFilter[2][0]*a[x-1][y+1] +
+                           yFilter[2][1]*a[x  ][y+1] +
+                           yFilter[2][2]*a[x+1][y+1]);
+                    gradient = (short)(Math.sqrt((newx * newx) + (newy * newy)));
+                    ret[x][y] = gradient;
+                    // Keep the max value to be able to scale
+                    if(gradient > maxGrad){maxGrad = gradient;}
+                    
+                }
+            }
+        }
+        
+        // Second step- scale to 255 and compute the histogram
+        float scale = (float)(255.0 / maxGrad);
+        short newVal;
+        for (int x = 0; x < aL; x++) {
+            for (int y = 0; y < a0L; y++) {
+                newVal = (short)(scale * ret[x][y]);
+                //System.out.println("newval " + newVal);
+                ret[x][y] = newVal;
+                histo[newVal] = histo[newVal] + 1;
+            }
+        } 
+        
+        buildImage(ret, "Progress");
+        System.out.println("Calling otsu");
+        // Call otsu to get the threshold value
+        short thresh = (short) (otsu(histo, aL * a0L, 256) * scale);
+        System.out.println("Applying otsu");
+        //int less = 0;
+        //int more = 0;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                if(ret[i][j] > thresh){ret2[i][j] = false; } // False becomes black
+                else{ret2[i][j] = true;} // True becomes white
+            }
+                
+        }
+        return ret2;
+    }
+    protected static short otsu(int[] histo, int size, int loopSize){
+        // Algorithm from http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html
+        float varMax = 0, meanB = 0, meanF = 0, newVar = 0;
+        int sum = 0, sumB = 0, fore = 0, back = 0;
+        short thresh = 0;
+        for (int i = 0; i < loopSize; i++) {
+            sum += i * histo[i];
+        }
+        for (short i = 0; i < loopSize; i++) {
+            back += histo[i];
+            if(back != 0){fore = size - back;}
+            if (fore == 0){break;}
+            sumB += i * histo[i];
+            meanB = (float)(sumB / back);
+            meanF = (float)((sum - sumB)/fore);
+            newVar = back * fore * (meanB - meanF) * (meanB - meanF);
+            if (newVar > varMax){varMax = newVar; thresh = i;}
+        }
+        System.out.println("Threshold = " + thresh);
+    return thresh;
+    }
+    
+    // This takes a grayscale short[][] and makes it into an image where the gray is converted to a color of gray, gray, gray
+    // It makes the color bolder but keeps same rations
+    protected static void buildColorImage(short[][] a, String fileName){
+        int aL = a.length;
+        int a0L = a[0].length;
+        BufferedImage img = new BufferedImage(aL, a0L, BufferedImage.TYPE_INT_RGB);
+        Color c;
+        int val = 0;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                val = a[i][j];
+                c = new Color(val, val, val);
+                img.setRGB(i, j, c.getRGB());
+            }
+        }
+        writeImageToFile(img, fileName);
+    }
+    
+    // This builds a gray image to file from short[][]
+    protected static void buildImage(short[][] a, String fileName){
+        BufferedImage img = new BufferedImage(a.length, a[0].length, BufferedImage.TYPE_BYTE_GRAY);
+        int aL = a.length;
+        int a0L = a[0].length;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                img.setRGB(i, j, a[i][j]);
+            }
+        }
+        writeImageToFile(img, fileName);
+    }
+    // Same thing as buildImage but takes in an int[][] array
+    protected static void buildIntImage(int[][] a, String fileName){
+        BufferedImage img = new BufferedImage(a.length, a[0].length, BufferedImage.TYPE_BYTE_GRAY);
+        int aL = a.length;
+        int a0L = a[0].length;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                img.setRGB(i, j, a[i][j]);
+            }
+        }
+        writeImageToFile(img, fileName);
+    }
+    // Takes a boolean image and makes false black and true white
+    protected static void buildBinaryImage(boolean[][] a, String name){
+        BufferedImage img = new BufferedImage(a.length, a[0].length, BufferedImage.TYPE_INT_BGR);
+        int black = (new Color(0, 0, 0)).getRGB();
+        int white = (new Color(255, 255, 255)).getRGB();
+        int aL = a.length;
+        int a0L = a[0].length;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                if(! a[i][j]){img.setRGB(i, j, black);}
+                else{img.setRGB(i, j, white);}
+            }
+        }
+        writeImageToFile(img, name);
+    }
+    
+    // This is for Sobel. Takes the boolean array and returns a buffered image but doesn't write it to file
+    protected static BufferedImage returnImageFromBinary(boolean[][] a){
+        BufferedImage img = new BufferedImage(a.length, a[0].length, BufferedImage.TYPE_INT_BGR);
+        int black = (new Color(0, 0, 0)).getRGB();
+        int white = (new Color(255, 255, 255)).getRGB();
+        int aL = a.length;
+        int a0L = a[0].length;
+        for (int i = 0; i < aL; i++) {
+            for (int j = 0; j < a0L; j++) {
+                if(! a[i][j]){img.setRGB(i, j, black);}
+                else{img.setRGB(i, j, white);}
+            }
+        }
+        return img;
+    }
+    
+    public static short[][] HoughTransform(boolean[][] img)
+	{
+            
+            double[] cos = new double[180];
+            double[] sin = new double[180];
+            double thetaStep = Math.PI/180;
+            int aL = img.length;
+            int a0L = img[0].length;
+            int diag = (int)Math.sqrt((aL * aL) + (a0L * a0L));
+            // Doing positive and negative but adding 90. [-90, 90)
+            for (int i = -90; i < 90; i++) {
+                cos[i+90] = Math.cos(thetaStep * i);
+                sin[i+90] = Math.sin(thetaStep * i);
+            }
+		//Create accumulator object
+            int width = img.length;
+            int height = img[0].length;
+            // Positive and negative so will multiply by 2, but grouping into tens for now
+            short[][] houghArray = new short[(diag / 8) + 1][90];
+            for (int i = 0; i < diag / 8; i++)
+            {
+                for (int j = 0; j < 90; j++)
+                    {
+                        houghArray[i][j] = 0;
+                    }
+            }
+		
+            //Fill in houghArray
+            int rho;
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    if (img[x][y])
+                    {
+                    // 0 = -90
+                    // 180 = 90
+                        for (int theta = 0; theta < 180; theta += 2)
+			{
+                            rho = (int) ((x*cos[theta] + y*sin[theta]));
+                            houghArray[(rho + diag)/16][theta/2] += 1;
+                        }
+                    }
+                }
+            }
+            int rlen = houghArray.length;
+            int tLength = houghArray[0].length;
+            int threshold = diag;
+            int scaledRho, scaledTheta;
+            System.out.println("Threshold diag " + threshold);
+            int numLines = 0;
+            BufferedImage image = returnImageFromBinary(img);
+	        for (int r = 1; r < rlen - 1; r++)
+	        {
+	            	for (int t = 1; t < tLength - 1; t++)
+	            	{
+	            		int current = houghArray[r][t];
+	            		if (houghArray[r][t] > threshold && 
+	            				current > houghArray[r][t-1] &&
+	            				current > houghArray[r][t+1] &&
+	            				current > houghArray[r-1][t] &&
+	            				current > houghArray[r+1][t])
+	            		{
+                                    System.out.println("Theta " + (t * 2 -90 ));
+                                    scaledTheta = t * 2 - 90;
+                                    scaledRho = r * 16 - diag;
+                                    image = drawLine(image, scaledRho, scaledTheta);
+                                    
+	            		}
+
+	            	}
+	         }
+            //System.out.println("Lines = " + numLines);
+            //short[][] tmpArray = scale(houghArray);
+            //buildColorImage(tmpArray, "fakeHough");
+            writeImageToFile(image, "lines");
+            
+            return houghArray;    
+        }
+    
+    protected static BufferedImage drawLine(BufferedImage img, int r, int theta){
+        // y = -cot0 x + r/sin0
+        // y - r/sin0 = -cot0 x
+        // cot0 x = r/sintheta - y
+        // x = tan0(r/sintheta - y)
+        theta += 45;
+        double y = r/Math.sin(theta * Math.PI/180);
+        double slope = 1/Math.tan(theta * Math.PI/180);
+        int red = new Color(255, 0, 0).getRGB();
+        int width = img.getWidth();
+        int height = img.getHeight();
+        for (int x = 0; x < width; x++) {
+            if(y >= 0 && y < height){img.setRGB(x, (int)y, red);}
+            y += slope;
+        }
+        return img;      
+                                        
+    }
+	            			//Calculate lines
+	            			//double newRho = (r-(rlen-1)*.5);
+	            			//double newTheta = t*thetaStep;
+	            			//double a = Math.cos(newTheta);
+	            			//double b = Math.sin(newTheta);
+	            			//double x0 = a*newRho;
+	            			//double y0 = b*newRho;
+	            			//double x1 = x0 + 1000*-b;
+	            			//double y1 = y0 + 1000*a;
+	            			//double x2 = x0 - 1000*-b;
+	            			//double y2 = y0 - 1000*a;
+    
+        
+}
+    
+    

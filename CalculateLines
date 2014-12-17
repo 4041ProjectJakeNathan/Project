@@ -1,0 +1,29 @@
+		//Draw detected lines on to the image
+	            int rlen = houghArray.length;
+	            for (int r =0; r < rlen; r++)
+	            {
+	            	for (int t = 0; t < 180; t++)
+	            	{
+	            		int current = houghArray[r][t];
+	            		if (houghArray[r][t] > threshold && 
+	            				current > houghArray[r][t-1] &&
+	            				current > houghArray[r][t+1] &&
+	            				current > houghArray[r-1][t] &&
+	            				current > houghArray[r+1][t])
+	            		{
+	            			//Calculate lines
+	            			double newRho = (r-(rlen-1)*.5);
+	            			double newTheta = t*thetaStep;
+	            			numLines++;
+	            			double a = Math.cos(newTheta);
+	            			double b = Math.sin(newTheta);
+	            			double x0 = a*newRho;
+	            			double y0 = b*newRho;
+	            			double x1 = x0 + 1000*-b;
+	            			double y1 = y0 + 1000*a;
+	            			double x2 = x0 - 1000*-b;
+	            			double y2 = y0 - 1000*a;
+	            		}
+
+	            	}
+	            }
